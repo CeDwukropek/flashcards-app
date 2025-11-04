@@ -1,24 +1,12 @@
-import React, { useEffect, useMemo, useState } from "react";
-
-// ===============================
-// Flashcards 2.0 — czysty React + Tailwind
-// Funkcje: licznik, kontynuacja tylko błędnych (≤10), podzbiory (segregacja),
-// upload JSON, DEMO, klawisze (Spacja/J/K/←/→), flip 3D bez bibliotek UI.
-// ===============================
-
-// --- Demo ---
-const DEMO = [
-  { id: "1", term: "apple", definition: "jabłko" },
-  { id: "2", term: "book", definition: "książka" },
-  { id: "3", term: "chair", definition: "krzesło" },
-  { id: "4", term: "to learn", definition: "uczyć się" },
-  { id: "5", term: "to remember", definition: "zapamiętać" },
-  { id: "6", term: "to forget", definition: "zapomnieć" },
-  { id: "7", term: "morning", definition: "poranek" },
-  { id: "8", term: "evening", definition: "wieczór" },
-  { id: "9", term: "question", definition: "pytanie" },
-  { id: "10", term: "answer", definition: "odpowiedź" },
-];
+import React, { useEffect, useMemo, useState, useCallback } from "react";
+import { Header } from "./components/Header";
+import { Stats } from "./components/Stats";
+import { TabSelector } from "./components/TabSelector";
+import BottomBar from "./components/BottomBar";
+import { FlipCard } from "./components/FlipCard";
+import { SubsetSelector } from "./components/SubsetSelector";
+import { shuffle, normalizeJson } from "./utils/helpers";
+import { DEMO_FLASHCARDS } from "./utils/constants";
 
 // --- Helpers ---
 const uuid = (() => {
@@ -26,50 +14,10 @@ const uuid = (() => {
   return () => `${Date.now()}_${c++}`;
 })();
 
-function normalizeJson(raw) {
-  if (!raw) return [];
-  const arr = Array.isArray(raw) ? raw : raw.items || raw.cards || [];
-  const out = [];
-  for (const it of arr) {
-    let term = "";
-    let definition = "";
-    if (typeof it === "string") {
-      const [a, b] = it.split(/\s*[-–:]\s*/);
-      term = a || it;
-      definition = b || "";
-    } else if (it) {
-      term = it.term || it.front || it.word || "";
-      definition = it.definition || it.back || it.translation || "";
-    }
-    if (!term) continue;
-    out.push({
-      id: uuid(),
-      term: String(term),
-      definition: String(definition || ""),
-    });
-  }
-  return out;
-}
-
-function shuffle(arr, seed) {
-  const a = [...arr];
-  // proste LCG, by zachować deterministyczny shuffle (opcjonalnie)
-  let s = seed ?? Date.now();
-  const rnd = () => {
-    s = (s * 1664525 + 1013904223) % 4294967296;
-    return s / 4294967296;
-  };
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(rnd() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
 export default function FlashcardsApp() {
   // Data
-  const [allCards, setAllCards] = useState(DEMO);
-  const [studyPool, setStudyPool] = useState(DEMO);
+  const [allCards, setAllCards] = useState(DEMO_FLASHCARDS);
+  const [studyPool, setStudyPool] = useState(DEMO_FLASHCARDS);
 
   // Flow/UI
   const [idx, setIdx] = useState(0);
@@ -90,6 +38,19 @@ export default function FlashcardsApp() {
     return Math.round((done / total) * 100);
   }, [idx, studyPool.length]);
 
+  const handleAnswer = useCallback(
+    (correct) => {
+      if (finished) return;
+      const id = studyPool[idx]?.id;
+      if (!id) return;
+      if (correct) setCorrectIds((s) => (s.includes(id) ? s : [...s, id]));
+      else setWrongIds((s) => (s.includes(id) ? s : [...s, id]));
+      setIdx((i) => i + 1);
+      setShowBack(false);
+    },
+    [finished, studyPool, idx]
+  );
+
   // Keyboard
   useEffect(() => {
     const onKey = (e) => {
@@ -105,7 +66,7 @@ export default function FlashcardsApp() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [tab, isRunning, idx, studyPool]);
+  }, [tab, isRunning, handleAnswer]);
 
   // Selection (segregacja)
   const [selection, setSelection] = useState({}); // id -> boolean
@@ -113,10 +74,6 @@ export default function FlashcardsApp() {
     () => Object.values(selection).filter(Boolean).length,
     [selection]
   );
-
-  function toggleSelect(id, value) {
-    setSelection((s) => ({ ...s, [id]: value ?? !s[id] }));
-  }
 
   // Handlers
   function startWith(cards) {
@@ -128,16 +85,6 @@ export default function FlashcardsApp() {
     setWrongIds([]);
     setIsRunning(true);
     setTab("learn");
-  }
-
-  function handleAnswer(correct) {
-    if (finished) return;
-    const id = studyPool[idx]?.id;
-    if (!id) return;
-    if (correct) setCorrectIds((s) => (s.includes(id) ? s : [...s, id]));
-    else setWrongIds((s) => (s.includes(id) ? s : [...s, id]));
-    setIdx((i) => i + 1);
-    setShowBack(false);
   }
 
   function resetAll() {
@@ -169,179 +116,72 @@ export default function FlashcardsApp() {
     }
   }
 
-  function startWithSelected() {
-    const chosen = allCards.filter((c) => selection[c.id]);
-    if (chosen.length > 0) startWith(chosen);
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white p-6">
-      <div className="mx-auto max-w-5xl">
-        {/* Header */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">EN Flashcards</h1>
-            <p className="text-slate-600">
-              Wybierz zestaw (JSON) i ucz się fiszkami. Spacja — odwróć, J/←
-              źle, K/→ dobrze.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="inline-flex items-center gap-2 text-sm">
-              <span className="px-2 py-1 rounded bg-slate-100">Wgraj JSON</span>
-              <input
-                type="file"
-                accept="application/json"
-                multiple
-                onChange={(e) => onUploadFiles(e.target.files)}
-                className="hidden"
-                id="fileup"
-              />
-              <label
-                htmlFor="fileup"
-                className="px-3 py-2 rounded bg-slate-100 cursor-pointer"
-              >
-                Wybierz pliki
-              </label>
-            </label>
-            <button
-              className="px-3 py-2 rounded border bg-white hover:bg-slate-50"
-              onClick={() => {
-                const withIds = DEMO.map((c) => ({ ...c, id: uuid() }));
-                setAllCards(withIds);
-                startWith(withIds);
-              }}
-            >
-              Załaduj DEMO
-            </button>
-          </div>
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white p-6 pb-24 sm:pb-6 relative">
+      <div className="mx-auto max-w-5xl absolute left-6 right-6 bottom-24 sm:static">
+        {/* top area: hidden on small screens — moved to BottomBar on mobile */}
+        <div className="hidden sm:block">
+          <Header
+            onUploadFiles={onUploadFiles}
+            onLoadDemo={() => {
+              const withIds = DEMO_FLASHCARDS.map((c) => ({
+                ...c,
+                id: uuid(),
+              }));
+              setAllCards(withIds);
+              startWith(withIds);
+            }}
+          />
+
+          <Stats
+            correctCount={correctIds.length}
+            wrongCount={wrongIds.length}
+            progress={progress}
+            isRunning={isRunning}
+            onToggleRunning={() => setIsRunning((s) => !s)}
+            onReset={resetAll}
+            totalCards={allCards.length}
+            poolSize={studyPool.length}
+          />
+
+          <TabSelector currentTab={tab} onTabChange={setTab} />
         </div>
 
-        {/* Stats + Controls */}
-        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div className="flex items-center gap-2">
-            <span className="rounded-2xl px-3 py-1 bg-green-100">
-              Dobrze: {correctIds.length}
-            </span>
-            <span className="rounded-2xl px-3 py-1 bg-red-100">
-              Źle: {wrongIds.length}
-            </span>
-            <span className="rounded-2xl px-3 py-1 bg-slate-100">
-              Postęp: {progress}%
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsRunning((s) => !s)}
-              className="px-3 py-2 rounded border bg-white hover:bg-slate-50"
-            >
-              {isRunning ? "Pauza" : "Start"}
-            </button>
-            <button
-              onClick={resetAll}
-              className="px-3 py-2 rounded border bg-white hover:bg-slate-50"
-            >
-              Reset
-            </button>
-          </div>
-          <div className="flex items-center gap-2 justify-start sm:justify-end">
-            <span className="rounded-2xl px-3 py-1 bg-slate-100">
-              Karty: {studyPool.length}
-            </span>
-            <span className="rounded-2xl px-3 py-1 bg-slate-100">
-              Zestaw: {allCards.length}
-            </span>
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="mt-4">
-          <div className="inline-flex rounded-xl border bg-white p-1">
-            <button
-              className={`px-4 py-2 rounded-lg ${
-                tab === "learn"
-                  ? "bg-slate-900 text-white"
-                  : "text-slate-700 hover:bg-slate-100"
-              }`}
-              onClick={() => setTab("learn")}
-            >
-              Nauka
-            </button>
-            <button
-              className={`px-4 py-2 rounded-lg ${
-                tab === "subset"
-                  ? "bg-slate-900 text-white"
-                  : "text-slate-700 hover:bg-slate-100"
-              }`}
-              onClick={() => setTab("subset")}
-            >
-              Podzbiory
-            </button>
-          </div>
-        </div>
+        {/* Floating mobile bottom bar (visible below sm) */}
+        <BottomBar
+          currentTab={tab}
+          onTabChange={setTab}
+          onUploadFiles={onUploadFiles}
+          isRunning={isRunning}
+          onToggleRunning={() => setIsRunning((s) => !s)}
+          onReset={resetAll}
+          onLoadDemo={() => {
+            const withIds = DEMO_FLASHCARDS.map((c) => ({ ...c, id: uuid() }));
+            setAllCards(withIds);
+            startWith(withIds);
+          }}
+          onContinueWithWrongs={continueWithWrongs}
+          wrongCount={wrongIds.length}
+        />
 
         {/* Learn Tab */}
         {tab === "learn" && (
           <div className="mt-6">
             {!finished ? (
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-1">
                 {/* Card */}
-                <div className="md:col-span-2">
-                  <div className="rounded-2xl shadow-lg border bg-white p-6">
-                    <div className="flex items-center justify-between mb-4 text-sm text-slate-500">
-                      <div>
-                        {Math.min(idx + 1, studyPool.length)} /{" "}
-                        {studyPool.length}
-                      </div>
-                      <div>Kliknij kartę lub wciśnij Spację</div>
-                    </div>
 
-                    {/* Flip card */}
-                    <div style={{ perspective: "1000px" }}>
-                      <div
-                        onClick={() => setShowBack((s) => !s)}
-                        className="relative h-56 md:h-64 cursor-pointer select-none"
-                        style={{
-                          transformStyle: "preserve-3d",
-                          transition:
-                            "transform 450ms cubic-bezier(0.22, 1, 0.36, 1)",
-                          transform: `rotateY(${showBack ? 180 : 0}deg)`,
-                        }}
-                      >
-                        {/* Front */}
-                        <div className="absolute inset-0 flex items-center justify-center text-3xl font-semibold [backface-visibility:hidden]">
-                          {current?.term}
-                        </div>
-                        {/* Back */}
-                        <div
-                          className="absolute inset-0 flex items-center justify-center text-2xl font-medium [backface-visibility:hidden]"
-                          style={{ transform: "rotateY(180deg)" }}
-                        >
-                          {current?.definition || (
-                            <span className="text-slate-400">
-                              (brak tłumaczenia)
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="mt-6 grid grid-cols-2 gap-3">
-                      <button
-                        onClick={() => handleAnswer(false)}
-                        className="px-4 py-3 rounded-xl bg-red-500 text-white font-medium"
-                      >
-                        Źle (J/←)
-                      </button>
-                      <button
-                        onClick={() => handleAnswer(true)}
-                        className="px-4 py-3 rounded-xl bg-green-600 text-white font-medium"
-                      >
-                        Dobrze (K/→)
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                <FlipCard
+                  term={current?.term}
+                  definition={current?.definition}
+                  showBack={showBack}
+                  onFlip={(maybeBool) => {
+                    if (typeof maybeBool === "boolean") handleAnswer(maybeBool);
+                    else setShowBack((s) => !s);
+                  }}
+                  currentIndex={idx}
+                  totalCards={studyPool.length}
+                />
               </div>
             ) : (
               <div className="mt-6">
@@ -376,81 +216,30 @@ export default function FlashcardsApp() {
 
         {/* Subset Tab */}
         {tab === "subset" && (
-          <div className="mt-6">
-            <div className="rounded-2xl shadow-md border bg-white p-6">
-              <div className="flex flex-wrap items-center gap-2 mb-4">
-                <button
-                  className="px-3 py-2 rounded border bg-white hover:bg-slate-50"
-                  onClick={() => setSelection({})}
-                >
-                  Wyczyść wybór
-                </button>
-                <button
-                  className="px-3 py-2 rounded border bg-white hover:bg-slate-50"
-                  onClick={() =>
-                    setSelection(
-                      Object.fromEntries(allCards.map((c) => [c.id, true]))
-                    )
-                  }
-                >
-                  Zaznacz wszystko
-                </button>
-                <button
-                  className="px-3 py-2 rounded bg-slate-900 text-white"
-                  onClick={startWithSelected}
-                >
-                  Start z zaznaczonych ({selectedCount})
-                </button>
-                <button
-                  className="px-3 py-2 rounded border bg-white hover:bg-slate-50"
-                  onClick={() => {
-                    const top5 = Object.fromEntries(
-                      allCards.slice(0, 5).map((c) => [c.id, true])
-                    );
-                    setSelection(top5);
-                  }}
-                >
-                  Szybki fokus: 5 pierwszych
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[420px] overflow-auto pr-1">
-                {allCards.map((c, i) => (
-                  <label
-                    key={c.id}
-                    className="flex items-start gap-3 rounded-xl border p-3 hover:shadow-sm"
-                  >
-                    <input
-                      type="checkbox"
-                      className="mt-1"
-                      checked={!!selection[c.id]}
-                      onChange={(e) => toggleSelect(c.id, e.target.checked)}
-                    />
-                    <div>
-                      <div className="font-medium">
-                        {c.term}{" "}
-                        <span className="text-slate-400 text-sm">#{i + 1}</span>
-                      </div>
-                      <div className="text-slate-600">
-                        {c.definition || (
-                          <span className="text-slate-400">
-                            (brak tłumaczenia)
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </label>
-                ))}
-              </div>
-
-              <p className="text-xs text-slate-500 mt-3">
-                Tip: Możesz wgrać własny plik JSON z polami: <code>term</code>/
-                <code>front</code>/<code>word</code> i <code>definition</code>/
-                <code>back</code>/<code>translation</code>, albo prostą tablicę
-                stringów typu "front - back".
-              </p>
-            </div>
-          </div>
+          <SubsetSelector
+            cards={allCards}
+            selection={selection}
+            onSelectionChange={(id, value) =>
+              setSelection((s) => ({ ...s, [id]: value }))
+            }
+            onClearSelection={() => setSelection({})}
+            onSelectAll={() =>
+              setSelection(
+                Object.fromEntries(allCards.map((c) => [c.id, true]))
+              )
+            }
+            onStartSelected={() => {
+              const chosen = allCards.filter((c) => selection[c.id]);
+              if (chosen.length > 0) startWith(chosen);
+            }}
+            selectedCount={selectedCount}
+            onQuickFocus={() => {
+              const top5 = Object.fromEntries(
+                allCards.slice(0, 5).map((c) => [c.id, true])
+              );
+              setSelection(top5);
+            }}
+          />
         )}
 
         {/* Footer */}
