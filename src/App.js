@@ -117,8 +117,8 @@ export default function FlashcardsApp() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white p-6 pb-24 sm:pb-6 relative">
-      <div className="mx-auto max-w-5xl absolute left-6 right-6 bottom-24 sm:static">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-slate-50 to-white p-6 pb-24 sm:pb-6 relative justify-end">
+      <div className="mx-auto max-w-5xl flex flex-col ">
         {/* top area: hidden on small screens — moved to BottomBar on mobile */}
         <div className="hidden sm:block">
           <Header
@@ -166,9 +166,9 @@ export default function FlashcardsApp() {
 
         {/* Learn Tab */}
         {tab === "learn" && (
-          <div className="mt-6">
+          <div className="mt-6 mb-8 sm:mb-0 flex flex-col flex-1 min-h-0">
             {!finished ? (
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-1">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-1 flex-1 min-h-0">
                 {/* Card */}
 
                 <FlipCard

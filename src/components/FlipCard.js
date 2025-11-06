@@ -9,7 +9,7 @@ export function FlipCard({
   totalCards,
 }) {
   return (
-    <div className="rounded-2xl shadow-lg border bg-white p-6">
+    <div className="rounded-2xl shadow-lg border bg-white p-6 mb-8 sm:mb-0">
       <div className="flex items-center justify-between mb-4 text-sm text-slate-500">
         <div>
           {currentIndex + 1} / {totalCards}
