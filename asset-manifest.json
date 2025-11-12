@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/flashcards-app/static/css/main.e7fe8698.css",
-    "main.js": "/flashcards-app/static/js/main.fb4fa8cf.js",
+    "main.css": "/flashcards-app/static/css/main.7cd4e917.css",
+    "main.js": "/flashcards-app/static/js/main.1930a155.js",
     "static/js/453.8cf91624.chunk.js": "/flashcards-app/static/js/453.8cf91624.chunk.js",
     "index.html": "/flashcards-app/index.html",
-    "main.e7fe8698.css.map": "/flashcards-app/static/css/main.e7fe8698.css.map",
-    "main.fb4fa8cf.js.map": "/flashcards-app/static/js/main.fb4fa8cf.js.map",
+    "main.7cd4e917.css.map": "/flashcards-app/static/css/main.7cd4e917.css.map",
+    "main.1930a155.js.map": "/flashcards-app/static/js/main.1930a155.js.map",
     "453.8cf91624.chunk.js.map": "/flashcards-app/static/js/453.8cf91624.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.e7fe8698.css",
-    "static/js/main.fb4fa8cf.js"
+    "static/css/main.7cd4e917.css",
+    "static/js/main.1930a155.js"
   ]
 }
