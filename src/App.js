@@ -9,10 +9,10 @@ import { shuffle, normalizeJson } from "./utils/helpers";
 import { DEMO_FLASHCARDS } from "./utils/constants";
 import {
   saveDeck,
-  loadDeck,
   saveProgress,
-  loadProgress,
   generateDeckId,
+  getAllDecks,
+  loadDeck,
 } from "./utils/firebase";
 
 // --- Helpers ---
@@ -26,6 +26,13 @@ export default function FlashcardsApp() {
   const [allCards, setAllCards] = useState(DEMO_FLASHCARDS);
   const [studyPool, setStudyPool] = useState(DEMO_FLASHCARDS);
   const [currentDeckId, setCurrentDeckId] = useState(null); // Track which deck is being studied
+  const [savedDecks, setSavedDecks] = useState([]); // List of decks from Firebase
+
+  // UI Theme
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const saved = localStorage.getItem("darkMode");
+    return saved ? JSON.parse(saved) : false;
+  });
 
   // Flow/UI
   const [idx, setIdx] = useState(0);
@@ -93,6 +100,29 @@ export default function FlashcardsApp() {
     return () => window.removeEventListener("keydown", onKey);
   }, [tab, isRunning, handleAnswer]);
 
+  // Load saved decks from Firebase on mount
+  useEffect(() => {
+    async function loadSavedDecks() {
+      try {
+        const decks = await getAllDecks();
+        setSavedDecks(decks);
+      } catch (error) {
+        console.error("Failed to load decks:", error);
+      }
+    }
+    loadSavedDecks();
+  }, []);
+
+  // Apply dark mode
+  useEffect(() => {
+    localStorage.setItem("darkMode", JSON.stringify(isDarkMode));
+    if (isDarkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [isDarkMode]);
+
   // Selection (segregacja)
   const [selection, setSelection] = useState({}); // id -> boolean
   const selectedCount = useMemo(
@@ -146,6 +176,9 @@ export default function FlashcardsApp() {
           `Uploaded Deck ${new Date().toLocaleDateString()}`
         );
         console.log("Deck saved to Firebase with ID:", deckId);
+        // Refresh the list of saved decks
+        const decks = await getAllDecks();
+        setSavedDecks(decks);
       } catch (error) {
         console.error("Failed to save deck to Firebase:", error);
       }
@@ -156,13 +189,29 @@ export default function FlashcardsApp() {
     }
   }
 
+  async function loadSavedDeck(deckId) {
+    try {
+      const deck = await loadDeck(deckId);
+      if (deck && deck.cards) {
+        setCurrentDeckId(deckId);
+        setAllCards(deck.cards);
+        startWith(deck.cards);
+      }
+    } catch (error) {
+      console.error("Failed to load deck:", error);
+      alert("Could not load deck. Please try again.");
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white p-6 pb-24 sm:pb-6 relative">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 p-6 pb-24 sm:pb-6 relative">
       <div className="mx-auto max-w-5xl absolute left-6 right-6 bottom-24 sm:static">
         {/* top area: hidden on small screens — moved to BottomBar on mobile */}
         <div className="hidden sm:block">
           <Header
             onUploadFiles={onUploadFiles}
+            isDarkMode={isDarkMode}
+            onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
             onLoadDemo={() => {
               const withIds = DEMO_FLASHCARDS.map((c) => ({
                 ...c,
@@ -202,6 +251,9 @@ export default function FlashcardsApp() {
           }}
           onContinueWithWrongs={continueWithWrongs}
           wrongCount={wrongIds.length}
+          savedDecks={savedDecks}
+          onLoadDeck={loadSavedDeck}
+          currentDeckId={currentDeckId}
         />
 
         {/* Learn Tab */}
@@ -225,9 +277,11 @@ export default function FlashcardsApp() {
               </div>
             ) : (
               <div className="mt-6">
-                <div className="rounded-2xl shadow-lg border bg-white p-6">
-                  <h2 className="text-xl font-semibold">Koniec rundy</h2>
-                  <p className="text-slate-600 mt-1">
+                <div className="rounded-2xl shadow-lg border bg-white dark:bg-slate-800 dark:border-slate-700 p-6">
+                  <h2 className="text-xl font-semibold dark:text-white">
+                    Koniec rundy
+                  </h2>
+                  <p className="text-slate-600 dark:text-slate-400 mt-1">
                     Wynik: <strong>{correctIds.length}</strong> dobrze,{" "}
                     <strong>{wrongIds.length}</strong> źle.
                   </p>
@@ -235,14 +289,14 @@ export default function FlashcardsApp() {
                   <div className="mt-4 flex flex-wrap items-center gap-3">
                     <button
                       onClick={resetAll}
-                      className="px-4 py-2 rounded-xl border bg-white hover:bg-slate-50"
+                      className="px-4 py-2 rounded-xl border bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-600"
                     >
                       Zacznij od nowa (cały zestaw)
                     </button>
                     {wrongIds.length > 0 && wrongIds.length <= 10 && (
                       <button
                         onClick={continueWithWrongs}
-                        className="px-4 py-2 rounded-xl bg-blue-600 text-white"
+                        className="px-4 py-2 rounded-xl bg-blue-600 dark:bg-blue-700 text-white hover:bg-blue-700 dark:hover:bg-blue-800"
                       >
                         Kontynuuj naukę (tylko błędne)
                       </button>
@@ -283,7 +337,7 @@ export default function FlashcardsApp() {
         )}
 
         {/* Footer */}
-        <div className="mt-8 text-center text-xs text-slate-400">
+        <div className="mt-8 text-center text-xs text-slate-400 dark:text-slate-500">
           Made with ❤️ — tryb demo działa bez pliku JSON
         </div>
       </div>

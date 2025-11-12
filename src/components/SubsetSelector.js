@@ -12,28 +12,28 @@ export function SubsetSelector({
 }) {
   return (
     <div className="mt-6">
-      <div className="rounded-2xl shadow-md border bg-white p-6">
+      <div className="rounded-2xl shadow-md border bg-white dark:bg-slate-800 dark:border-slate-700 p-6">
         <div className="flex flex-wrap items-center gap-2 mb-4">
           <button
-            className="px-3 py-2 rounded border bg-white hover:bg-slate-50"
+            className="px-3 py-2 rounded border bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-600"
             onClick={onClearSelection}
           >
             Wyczyść wybór
           </button>
           <button
-            className="px-3 py-2 rounded border bg-white hover:bg-slate-50"
+            className="px-3 py-2 rounded border bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-600"
             onClick={onSelectAll}
           >
             Zaznacz wszystko
           </button>
           <button
-            className="px-3 py-2 rounded bg-slate-900 text-white"
+            className="px-3 py-2 rounded bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900"
             onClick={onStartSelected}
           >
             Start z zaznaczonych ({selectedCount})
           </button>
           <button
-            className="px-3 py-2 rounded border bg-white hover:bg-slate-50"
+            className="px-3 py-2 rounded border bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-600"
             onClick={onQuickFocus}
           >
             Szybki fokus: 5 pierwszych
@@ -44,7 +44,7 @@ export function SubsetSelector({
           {cards.map((c, i) => (
             <label
               key={c.id}
-              className="flex items-start gap-3 rounded-xl border p-3 hover:shadow-sm"
+              className="flex items-start gap-3 rounded-xl border bg-white dark:bg-slate-700 dark:border-slate-600 p-3 hover:shadow-sm dark:text-white"
             >
               <input
                 type="checkbox"
@@ -55,11 +55,15 @@ export function SubsetSelector({
               <div>
                 <div className="font-medium">
                   {c.term}{" "}
-                  <span className="text-slate-400 text-sm">#{i + 1}</span>
+                  <span className="text-slate-400 dark:text-slate-500 text-sm">
+                    #{i + 1}
+                  </span>
                 </div>
-                <div className="text-slate-600">
+                <div className="text-slate-600 dark:text-slate-400">
                   {c.definition || (
-                    <span className="text-slate-400">(brak tłumaczenia)</span>
+                    <span className="text-slate-400 dark:text-slate-500">
+                      (brak tłumaczenia)
+                    </span>
                   )}
                 </div>
               </div>
@@ -67,7 +71,7 @@ export function SubsetSelector({
           ))}
         </div>
 
-        <p className="text-xs text-slate-500 mt-3">
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-3">
           Tip: Możesz wgrać własny plik JSON z polami: <code>term</code>/
           <code>front</code>/<code>word</code> i <code>definition</code>/
           <code>back</code>/<code>translation</code>, albo prostą tablicę
