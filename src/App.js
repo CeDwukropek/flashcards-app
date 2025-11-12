@@ -7,6 +7,13 @@ import { FlipCard } from "./components/FlipCard";
 import { SubsetSelector } from "./components/SubsetSelector";
 import { shuffle, normalizeJson } from "./utils/helpers";
 import { DEMO_FLASHCARDS } from "./utils/constants";
+import {
+  saveDeck,
+  loadDeck,
+  saveProgress,
+  loadProgress,
+  generateDeckId,
+} from "./utils/firebase";
 
 // --- Helpers ---
 const uuid = (() => {
@@ -18,6 +25,7 @@ export default function FlashcardsApp() {
   // Data
   const [allCards, setAllCards] = useState(DEMO_FLASHCARDS);
   const [studyPool, setStudyPool] = useState(DEMO_FLASHCARDS);
+  const [currentDeckId, setCurrentDeckId] = useState(null); // Track which deck is being studied
 
   // Flow/UI
   const [idx, setIdx] = useState(0);
@@ -43,12 +51,29 @@ export default function FlashcardsApp() {
       if (finished) return;
       const id = studyPool[idx]?.id;
       if (!id) return;
-      if (correct) setCorrectIds((s) => (s.includes(id) ? s : [...s, id]));
-      else setWrongIds((s) => (s.includes(id) ? s : [...s, id]));
+
+      let updatedCorrectIds = correctIds;
+      let updatedWrongIds = wrongIds;
+
+      if (correct) {
+        updatedCorrectIds = correctIds.includes(id)
+          ? correctIds
+          : [...correctIds, id];
+        setCorrectIds(updatedCorrectIds);
+      } else {
+        updatedWrongIds = wrongIds.includes(id) ? wrongIds : [...wrongIds, id];
+        setWrongIds(updatedWrongIds);
+      }
+
+      // Save progress to localStorage (and eventually sync to Firebase if deckId exists)
+      if (currentDeckId) {
+        saveProgress(currentDeckId, updatedCorrectIds, updatedWrongIds);
+      }
+
       setIdx((i) => i + 1);
       setShowBack(false);
     },
-    [finished, studyPool, idx]
+    [finished, studyPool, idx, correctIds, wrongIds, currentDeckId]
   );
 
   // Keyboard
@@ -111,6 +136,21 @@ export default function FlashcardsApp() {
     }
     if (contents.length) {
       const withIds = contents.map((c) => ({ ...c, id: uuid() }));
+      const deckId = generateDeckId();
+
+      // Save to Firebase
+      try {
+        await saveDeck(
+          deckId,
+          withIds,
+          `Uploaded Deck ${new Date().toLocaleDateString()}`
+        );
+        console.log("Deck saved to Firebase with ID:", deckId);
+      } catch (error) {
+        console.error("Failed to save deck to Firebase:", error);
+      }
+
+      setCurrentDeckId(deckId);
       setAllCards(withIds);
       startWith(withIds);
     }
