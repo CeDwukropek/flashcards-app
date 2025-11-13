@@ -204,8 +204,8 @@ export default function FlashcardsApp() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 p-6 pb-24 sm:pb-6 relative">
-      <div className="mx-auto max-w-5xl absolute left-6 right-6 bottom-24 sm:static">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 p-6 pb-24 sm:pb-6 relative flex justify-end">
+      <div className="mx-auto max-w-5xl left-6 right-6 bottom-24 sm:static flex justify-end flex-col">
         {/* top area: hidden on small screens — moved to BottomBar on mobile */}
         <div className="hidden sm:block">
           <Header
