@@ -13,6 +13,9 @@ import {
   generateDeckId,
   getAllDecks,
   loadDeck,
+  saveSession,
+  loadSession,
+  clearSession,
 } from "./utils/firebase";
 
 // --- Helpers ---
@@ -27,6 +30,7 @@ export default function FlashcardsApp() {
   const [studyPool, setStudyPool] = useState(DEMO_FLASHCARDS);
   const [currentDeckId, setCurrentDeckId] = useState(null); // Track which deck is being studied
   const [savedDecks, setSavedDecks] = useState([]); // List of decks from Firebase
+  const [isLoadingDeck, setIsLoadingDeck] = useState(false); // Loading state for deck
 
   // UI Theme
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -123,12 +127,51 @@ export default function FlashcardsApp() {
     }
   }, [isDarkMode]);
 
-  // Selection (segregacja)
+  // Restore session on mount
+  useEffect(() => {
+    const session = loadSession();
+    if (session && session.deckId) {
+      // Try to restore the previous session
+      async function restoreSession() {
+        try {
+          setIsLoadingDeck(true);
+          const deck = await loadDeck(session.deckId);
+          if (deck && deck.cards) {
+            setCurrentDeckId(session.deckId);
+            setAllCards(deck.cards);
+            setStudyPool(shuffle(deck.cards, session.idx || 0)); // Use seed for consistency
+            setIdx(session.idx || 0);
+            setCorrectIds(session.correctIds || []);
+            setWrongIds(session.wrongIds || []);
+            setIsRunning(true);
+            setTab("learn");
+            console.log("Session restored:", session.deckId);
+          }
+        } catch (error) {
+          console.error("Failed to restore session:", error);
+          // Clear invalid session
+          clearSession();
+        } finally {
+          setIsLoadingDeck(false);
+        }
+      }
+      restoreSession();
+    }
+  }, []); // Only run on mount
+
+  // Selection (segregaja)
   const [selection, setSelection] = useState({}); // id -> boolean
   const selectedCount = useMemo(
     () => Object.values(selection).filter(Boolean).length,
     [selection]
   );
+
+  // Auto-save session when progress changes
+  useEffect(() => {
+    if (currentDeckId) {
+      saveSession(currentDeckId, idx, correctIds, wrongIds);
+    }
+  }, [idx, correctIds, wrongIds, currentDeckId]);
 
   // Handlers
   function startWith(cards) {
@@ -191,6 +234,7 @@ export default function FlashcardsApp() {
 
   async function loadSavedDeck(deckId) {
     try {
+      setIsLoadingDeck(true);
       const deck = await loadDeck(deckId);
       if (deck && deck.cards) {
         setCurrentDeckId(deckId);
@@ -200,12 +244,14 @@ export default function FlashcardsApp() {
     } catch (error) {
       console.error("Failed to load deck:", error);
       alert("Could not load deck. Please try again.");
+    } finally {
+      setIsLoadingDeck(false);
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 p-6 pb-24 sm:pb-6 relative">
-      <div className="mx-auto max-w-5xl absolute left-6 right-6 bottom-24 sm:static">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 p-6 pb-24 sm:pb-6 relative flex justify-end">
+      <div className="mx-auto max-w-5xl left-6 right-6 bottom-24 sm:static flex justify-end flex-col">
         {/* top area: hidden on small screens — moved to BottomBar on mobile */}
         <div className="hidden sm:block">
           <Header
@@ -273,6 +319,7 @@ export default function FlashcardsApp() {
                   }}
                   currentIndex={idx}
                   totalCards={studyPool.length}
+                  isLoading={isLoadingDeck}
                 />
               </div>
             ) : (
