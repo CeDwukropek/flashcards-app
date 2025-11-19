@@ -5,7 +5,16 @@ export const uuid = (() => {
 
 export function normalizeJson(raw) {
   if (!raw) return [];
-  const arr = Array.isArray(raw) ? raw : raw.items || raw.cards || [];
+  // Accept multiple shapes:
+  // - an array of cards
+  // - an object with `items` or `cards` arrays
+  // - a single card object with `front`/`back` or `term`/`definition`
+  let arr;
+  if (Array.isArray(raw)) arr = raw;
+  else if (raw.items) arr = raw.items;
+  else if (raw.cards) arr = raw.cards;
+  else if (raw.front || raw.back || raw.term || raw.definition) arr = [raw];
+  else arr = [];
   return arr.map((it) => {
     if (typeof it === "string") {
       const [term, definition] = it.split(/\s*[-–:]\s*/);

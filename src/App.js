@@ -119,16 +119,6 @@ export default function FlashcardsApp() {
     loadSavedDecks();
   }, []);
 
-  // Apply dark mode
-  useEffect(() => {
-    localStorage.setItem("darkMode", JSON.stringify(isDarkMode));
-    if (isDarkMode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  }, [isDarkMode]);
-
   // Restore session on mount
   useEffect(() => {
     const session = loadSession();
@@ -221,39 +211,54 @@ export default function FlashcardsApp() {
   async function onUploadFiles(files) {
     if (!files || !files.length) return;
     const contents = [];
+
+    // Derive a suggested name from the first file's JSON (name/title/deckName)
+    // or the filename when a single file is uploaded.
+    let suggestedName = undefined;
+
     for (const f of Array.from(files)) {
       const text = await f.text();
       try {
-        contents.push(...normalizeJson(JSON.parse(text)));
+        const parsed = JSON.parse(text);
+        contents.push(...normalizeJson(parsed));
+
+        if (!suggestedName && parsed && typeof parsed === "object") {
+          if (parsed.name) suggestedName = parsed.name;
+          else if (parsed.title) suggestedName = parsed.title;
+          else if (parsed.deckName) suggestedName = parsed.deckName;
+        }
+
+        if (!suggestedName && files.length === 1) {
+          suggestedName = f.name.replace(/\.[^/.]+$/, "");
+        }
       } catch (e) {
         console.error("Invalid JSON in", f.name, e);
       }
     }
-    if (contents.length) {
-      const withIds = contents.map((c) => ({ ...c, id: uuid() }));
-      const deckId = generateDeckId();
 
-      // Save to Firebase
-      try {
-        await saveDeck(
-          deckId,
-          withIds,
-          `Uploaded Deck ${new Date().toLocaleDateString()}`
-        );
-        console.log("Deck saved to Firebase with ID:", deckId);
-        // Refresh the list of saved decks
-        const decks = await getAllDecks();
-        setSavedDecks(decks);
-      } catch (error) {
-        console.error("Failed to save deck to Firebase:", error);
-      }
+    if (!contents.length) return;
 
-      setCurrentDeckId(deckId);
-      setAllCards(withIds);
-      // Clear selection for new deck
-      setSelection({});
-      startWith(withIds);
+    // Attach stable ids
+    const withIds = contents.map((c) => ({ ...c, id: uuid() }));
+
+    if (!suggestedName)
+      suggestedName = `Uploaded Deck ${new Date().toLocaleDateString()}`;
+
+    const deckId = generateDeckId();
+    try {
+      await saveDeck(deckId, withIds, suggestedName);
+      // Refresh saved decks list
+      const decks = await getAllDecks();
+      setSavedDecks(decks);
+    } catch (error) {
+      console.error("Failed to save deck to Firebase:", error);
     }
+
+    setCurrentDeckId(deckId);
+    setAllCards(withIds);
+    // Clear selection for new deck
+    setSelection({});
+    startWith(withIds);
   }
 
   async function loadSavedDeck(deckId) {
