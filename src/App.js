@@ -16,6 +16,8 @@ import {
   saveSession,
   loadSession,
   clearSession,
+  saveSubsetSelection,
+  loadSubsetSelection,
 } from "./utils/firebase";
 
 // --- Helpers ---
@@ -160,11 +162,25 @@ export default function FlashcardsApp() {
   }, []); // Only run on mount
 
   // Selection (segregaja)
-  const [selection, setSelection] = useState({}); // id -> boolean
+  const [selection, setSelection] = useState(() => {
+    // Try to load saved subset selection on mount
+    const lastDeckId = loadSession()?.deckId;
+    if (lastDeckId) {
+      return loadSubsetSelection(lastDeckId);
+    }
+    return {};
+  }); // id -> boolean
   const selectedCount = useMemo(
     () => Object.values(selection).filter(Boolean).length,
     [selection]
   );
+
+  // Auto-save subset selection when it changes
+  useEffect(() => {
+    if (currentDeckId && Object.keys(selection).length > 0) {
+      saveSubsetSelection(currentDeckId, selection);
+    }
+  }, [selection, currentDeckId]);
 
   // Auto-save session when progress changes
   useEffect(() => {
@@ -340,12 +356,12 @@ export default function FlashcardsApp() {
                     >
                       Zacznij od nowa (cały zestaw)
                     </button>
-                    {wrongIds.length > 0 && wrongIds.length <= 10 && (
+                    {wrongIds.length > 0 && (
                       <button
                         onClick={continueWithWrongs}
                         className="px-4 py-2 rounded-xl bg-blue-600 dark:bg-blue-700 text-white hover:bg-blue-700 dark:hover:bg-blue-800"
                       >
-                        Kontynuuj naukę (tylko błędne)
+                        Kontynuuj naukę (tylko błędne - {wrongIds.length})
                       </button>
                     )}
                   </div>
