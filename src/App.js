@@ -16,6 +16,8 @@ import {
   saveSession,
   loadSession,
   clearSession,
+  saveSubsetSelection,
+  loadSubsetSelection,
 } from "./utils/firebase";
 
 // --- Helpers ---
@@ -160,11 +162,25 @@ export default function FlashcardsApp() {
   }, []); // Only run on mount
 
   // Selection (segregaja)
-  const [selection, setSelection] = useState({}); // id -> boolean
+  const [selection, setSelection] = useState(() => {
+    // Try to load saved subset selection on mount
+    const lastDeckId = loadSession()?.deckId;
+    if (lastDeckId) {
+      return loadSubsetSelection(lastDeckId);
+    }
+    return {};
+  }); // id -> boolean
   const selectedCount = useMemo(
     () => Object.values(selection).filter(Boolean).length,
     [selection]
   );
+
+  // Auto-save subset selection when it changes
+  useEffect(() => {
+    if (currentDeckId && Object.keys(selection).length > 0) {
+      saveSubsetSelection(currentDeckId, selection);
+    }
+  }, [selection, currentDeckId]);
 
   // Auto-save session when progress changes
   useEffect(() => {
@@ -194,6 +210,12 @@ export default function FlashcardsApp() {
     const wrongOnly = allCards.filter((c) => wrongIds.includes(c.id));
     if (wrongOnly.length === 0) return;
     startWith(wrongOnly);
+  }
+
+  function continueWithSelected() {
+    const selectedCards = allCards.filter((c) => selection[c.id]);
+    if (selectedCards.length === 0) return;
+    startWith(selectedCards);
   }
 
   async function onUploadFiles(files) {
@@ -228,6 +250,8 @@ export default function FlashcardsApp() {
 
       setCurrentDeckId(deckId);
       setAllCards(withIds);
+      // Clear selection for new deck
+      setSelection({});
       startWith(withIds);
     }
   }
@@ -239,6 +263,13 @@ export default function FlashcardsApp() {
       if (deck && deck.cards) {
         setCurrentDeckId(deckId);
         setAllCards(deck.cards);
+        // Clear selection when loading a new deck
+        setSelection({});
+        // Load saved subset selection for this deck
+        const savedSelection = loadSubsetSelection(deckId);
+        if (Object.keys(savedSelection).length > 0) {
+          setSelection(savedSelection);
+        }
         startWith(deck.cards);
       }
     } catch (error) {
@@ -340,12 +371,20 @@ export default function FlashcardsApp() {
                     >
                       Zacznij od nowa (cały zestaw)
                     </button>
-                    {wrongIds.length > 0 && wrongIds.length <= 10 && (
+                    {wrongIds.length > 0 && (
                       <button
                         onClick={continueWithWrongs}
                         className="px-4 py-2 rounded-xl bg-blue-600 dark:bg-blue-700 text-white hover:bg-blue-700 dark:hover:bg-blue-800"
                       >
-                        Kontynuuj naukę (tylko błędne)
+                        Kontynuuj naukę (tylko błędne - {wrongIds.length})
+                      </button>
+                    )}
+                    {selectedCount > 0 && (
+                      <button
+                        onClick={continueWithSelected}
+                        className="px-4 py-2 rounded-xl bg-purple-600 dark:bg-purple-700 text-white hover:bg-purple-700 dark:hover:bg-purple-800"
+                      >
+                        Nauka (wybrane - {selectedCount})
                       </button>
                     )}
                   </div>
