@@ -212,6 +212,12 @@ export default function FlashcardsApp() {
     startWith(wrongOnly);
   }
 
+  function continueWithSelected() {
+    const selectedCards = allCards.filter((c) => selection[c.id]);
+    if (selectedCards.length === 0) return;
+    startWith(selectedCards);
+  }
+
   async function onUploadFiles(files) {
     if (!files || !files.length) return;
     const contents = [];
@@ -244,6 +250,8 @@ export default function FlashcardsApp() {
 
       setCurrentDeckId(deckId);
       setAllCards(withIds);
+      // Clear selection for new deck
+      setSelection({});
       startWith(withIds);
     }
   }
@@ -255,6 +263,13 @@ export default function FlashcardsApp() {
       if (deck && deck.cards) {
         setCurrentDeckId(deckId);
         setAllCards(deck.cards);
+        // Clear selection when loading a new deck
+        setSelection({});
+        // Load saved subset selection for this deck
+        const savedSelection = loadSubsetSelection(deckId);
+        if (Object.keys(savedSelection).length > 0) {
+          setSelection(savedSelection);
+        }
         startWith(deck.cards);
       }
     } catch (error) {
@@ -362,6 +377,14 @@ export default function FlashcardsApp() {
                         className="px-4 py-2 rounded-xl bg-blue-600 dark:bg-blue-700 text-white hover:bg-blue-700 dark:hover:bg-blue-800"
                       >
                         Kontynuuj naukę (tylko błędne - {wrongIds.length})
+                      </button>
+                    )}
+                    {selectedCount > 0 && (
+                      <button
+                        onClick={continueWithSelected}
+                        className="px-4 py-2 rounded-xl bg-purple-600 dark:bg-purple-700 text-white hover:bg-purple-700 dark:hover:bg-purple-800"
+                      >
+                        Nauka (wybrane - {selectedCount})
                       </button>
                     )}
                   </div>
