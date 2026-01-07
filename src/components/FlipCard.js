@@ -3,11 +3,12 @@ import React from "react";
 export function FlipCard({
   term,
   definition,
-  showBack,
   onFlip,
   currentIndex,
   totalCards,
   isLoading = false,
+  showBack,
+  shouldAnimateFlip = true,
 }) {
   return (
     <div className="rounded-2xl shadow-lg border bg-white dark:bg-slate-800 dark:border-slate-700 p-6">
@@ -37,7 +38,9 @@ export function FlipCard({
             className="relative h-56 md:h-64 cursor-pointer select-none"
             style={{
               transformStyle: "preserve-3d",
-              transition: "transform 450ms cubic-bezier(0.22, 1, 0.36, 1)",
+              transition: shouldAnimateFlip
+                ? "transform 450ms cubic-bezier(0.22, 1, 0.36, 1)"
+                : "none",
               transform: `rotateY(${showBack ? 180 : 0}deg)`,
             }}
           >
