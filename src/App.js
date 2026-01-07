@@ -327,6 +327,9 @@ export default function FlashcardsApp() {
               setAllCards(withIds);
               startWith(withIds);
             }}
+            savedDecks={savedDecks}
+            onLoadDeck={loadSavedDeck}
+            currentDeckId={currentDeckId}
           />
 
           <Stats
