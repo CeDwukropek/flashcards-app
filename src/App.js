@@ -113,7 +113,7 @@ export default function FlashcardsApp() {
   useEffect(() => {
     const onKey = (e) => {
       if (tab !== "learn" || !isRunning) return;
-      if (e.key === " ") {
+      if (e.key === " " || e.key === "ArrowDown" || e.key === "ArrowUp") {
         e.preventDefault();
         setShouldAnimateFlip(true);
         setShowBack((s) => !s);
