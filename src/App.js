@@ -40,9 +40,19 @@ export default function FlashcardsApp() {
     return saved ? JSON.parse(saved) : false;
   });
 
+  // Card orientation preference
+  const [startWithBack, setStartWithBack] = useState(() => {
+    try {
+      const saved = localStorage.getItem("startWithBack");
+      return saved ? JSON.parse(saved) : false;
+    } catch (e) {
+      return false;
+    }
+  });
+
   // Flow/UI
   const [idx, setIdx] = useState(0);
-  const [showBack, setShowBack] = useState(false);
+  const [showBack, setShowBack] = useState(() => startWithBack);
   const [tab, setTab] = useState("learn"); // "learn" | "subset"
   const [isRunning, setIsRunning] = useState(true);
   const [seed, setSeed] = useState(() => Math.floor(Math.random() * 1e9));
@@ -84,9 +94,17 @@ export default function FlashcardsApp() {
       }
 
       setIdx((i) => i + 1);
-      setShowBack(false);
+      setShowBack(startWithBack);
     },
-    [finished, studyPool, idx, correctIds, wrongIds, currentDeckId]
+    [
+      finished,
+      studyPool,
+      idx,
+      correctIds,
+      wrongIds,
+      currentDeckId,
+      startWithBack,
+    ]
   );
 
   // Keyboard
@@ -119,6 +137,12 @@ export default function FlashcardsApp() {
     loadSavedDecks();
   }, []);
 
+  // Persist card orientation preference and update current card
+  useEffect(() => {
+    localStorage.setItem("startWithBack", JSON.stringify(startWithBack));
+    setShowBack(startWithBack);
+  }, [startWithBack]);
+
   // Restore session on mount
   useEffect(() => {
     const session = loadSession();
@@ -135,6 +159,7 @@ export default function FlashcardsApp() {
             setIdx(session.idx || 0);
             setCorrectIds(session.correctIds || []);
             setWrongIds(session.wrongIds || []);
+            setShowBack(startWithBack);
             setIsRunning(true);
             setTab("learn");
             console.log("Session restored:", session.deckId);
@@ -184,7 +209,7 @@ export default function FlashcardsApp() {
     const shuffled = shuffle(cards, seed);
     setStudyPool(shuffled);
     setIdx(0);
-    setShowBack(false);
+    setShowBack(startWithBack);
     setCorrectIds([]);
     setWrongIds([]);
     setIsRunning(true);
@@ -313,6 +338,8 @@ export default function FlashcardsApp() {
             onReset={resetAll}
             totalCards={allCards.length}
             poolSize={studyPool.length}
+            startWithBack={startWithBack}
+            onToggleStartWithBack={() => setStartWithBack((s) => !s)}
           />
 
           <TabSelector currentTab={tab} onTabChange={setTab} />
@@ -336,6 +363,8 @@ export default function FlashcardsApp() {
           savedDecks={savedDecks}
           onLoadDeck={loadSavedDeck}
           currentDeckId={currentDeckId}
+          startWithBack={startWithBack}
+          onToggleStartWithBack={() => setStartWithBack((s) => !s)}
         />
 
         {/* Learn Tab */}
