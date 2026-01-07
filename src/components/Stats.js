@@ -9,6 +9,8 @@ export function Stats({
   onReset,
   totalCards,
   poolSize,
+  startWithBack,
+  onToggleStartWithBack,
 }) {
   return (
     <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -35,6 +37,14 @@ export function Stats({
           className="px-3 py-2 rounded border bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700"
         >
           Reset
+        </button>
+        <button
+          onClick={onToggleStartWithBack}
+          className={`px-3 py-2 rounded border bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700 ${
+            startWithBack ? "ring-2 ring-blue-500 dark:ring-blue-400" : ""
+          }`}
+        >
+          {startWithBack ? "Tył na start" : "Przód na start"}
         </button>
       </div>
       <div className="flex items-center gap-2 justify-start sm:justify-end">

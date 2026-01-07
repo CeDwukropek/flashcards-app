@@ -14,6 +14,8 @@ export default function BottomBar({
   savedDecks = [],
   onLoadDeck,
   currentDeckId,
+  startWithBack,
+  onToggleStartWithBack,
 }) {
   const [open, setOpen] = useState(false);
   const inputRef = useRef(null);
@@ -104,6 +106,17 @@ export default function BottomBar({
                 }}
               >
                 Załaduj DEMO
+              </button>
+              <button
+                className="text-left px-2 py-2 rounded hover:bg-slate-50 dark:hover:bg-slate-600 dark:text-white"
+                onClick={() => {
+                  onToggleStartWithBack?.();
+                  setOpen(false);
+                }}
+              >
+                {startWithBack
+                  ? "Pokazuj przód na start"
+                  : "Pokazuj tył na start"}
               </button>
               <button
                 disabled={!wrongCount}

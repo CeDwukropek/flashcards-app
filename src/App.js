@@ -40,9 +40,19 @@ export default function FlashcardsApp() {
     return saved ? JSON.parse(saved) : false;
   });
 
+  // Card orientation preference
+  const [startWithBack, setStartWithBack] = useState(() => {
+    try {
+      const saved = localStorage.getItem("startWithBack");
+      return saved ? JSON.parse(saved) : false;
+    } catch (e) {
+      return false;
+    }
+  });
+
   // Flow/UI
   const [idx, setIdx] = useState(0);
-  const [showBack, setShowBack] = useState(false);
+  const [showBack, setShowBack] = useState(() => startWithBack);
   const [tab, setTab] = useState("learn"); // "learn" | "subset"
   const [isRunning, setIsRunning] = useState(true);
   const [seed, setSeed] = useState(() => Math.floor(Math.random() * 1e9));
@@ -84,9 +94,17 @@ export default function FlashcardsApp() {
       }
 
       setIdx((i) => i + 1);
-      setShowBack(false);
+      setShowBack(startWithBack);
     },
-    [finished, studyPool, idx, correctIds, wrongIds, currentDeckId]
+    [
+      finished,
+      studyPool,
+      idx,
+      correctIds,
+      wrongIds,
+      currentDeckId,
+      startWithBack,
+    ]
   );
 
   // Keyboard
@@ -119,15 +137,11 @@ export default function FlashcardsApp() {
     loadSavedDecks();
   }, []);
 
-  // Apply dark mode
+  // Persist card orientation preference and update current card
   useEffect(() => {
-    localStorage.setItem("darkMode", JSON.stringify(isDarkMode));
-    if (isDarkMode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  }, [isDarkMode]);
+    localStorage.setItem("startWithBack", JSON.stringify(startWithBack));
+    setShowBack(startWithBack);
+  }, [startWithBack]);
 
   // Restore session on mount
   useEffect(() => {
@@ -145,6 +159,7 @@ export default function FlashcardsApp() {
             setIdx(session.idx || 0);
             setCorrectIds(session.correctIds || []);
             setWrongIds(session.wrongIds || []);
+            setShowBack(startWithBack);
             setIsRunning(true);
             setTab("learn");
             console.log("Session restored:", session.deckId);
@@ -194,7 +209,7 @@ export default function FlashcardsApp() {
     const shuffled = shuffle(cards, seed);
     setStudyPool(shuffled);
     setIdx(0);
-    setShowBack(false);
+    setShowBack(startWithBack);
     setCorrectIds([]);
     setWrongIds([]);
     setIsRunning(true);
@@ -221,39 +236,54 @@ export default function FlashcardsApp() {
   async function onUploadFiles(files) {
     if (!files || !files.length) return;
     const contents = [];
+
+    // Derive a suggested name from the first file's JSON (name/title/deckName)
+    // or the filename when a single file is uploaded.
+    let suggestedName = undefined;
+
     for (const f of Array.from(files)) {
       const text = await f.text();
       try {
-        contents.push(...normalizeJson(JSON.parse(text)));
+        const parsed = JSON.parse(text);
+        contents.push(...normalizeJson(parsed));
+
+        if (!suggestedName && parsed && typeof parsed === "object") {
+          if (parsed.name) suggestedName = parsed.name;
+          else if (parsed.title) suggestedName = parsed.title;
+          else if (parsed.deckName) suggestedName = parsed.deckName;
+        }
+
+        if (!suggestedName && files.length === 1) {
+          suggestedName = f.name.replace(/\.[^/.]+$/, "");
+        }
       } catch (e) {
         console.error("Invalid JSON in", f.name, e);
       }
     }
-    if (contents.length) {
-      const withIds = contents.map((c) => ({ ...c, id: uuid() }));
-      const deckId = generateDeckId();
 
-      // Save to Firebase
-      try {
-        await saveDeck(
-          deckId,
-          withIds,
-          `Uploaded Deck ${new Date().toLocaleDateString()}`
-        );
-        console.log("Deck saved to Firebase with ID:", deckId);
-        // Refresh the list of saved decks
-        const decks = await getAllDecks();
-        setSavedDecks(decks);
-      } catch (error) {
-        console.error("Failed to save deck to Firebase:", error);
-      }
+    if (!contents.length) return;
 
-      setCurrentDeckId(deckId);
-      setAllCards(withIds);
-      // Clear selection for new deck
-      setSelection({});
-      startWith(withIds);
+    // Attach stable ids
+    const withIds = contents.map((c) => ({ ...c, id: uuid() }));
+
+    if (!suggestedName)
+      suggestedName = `Uploaded Deck ${new Date().toLocaleDateString()}`;
+
+    const deckId = generateDeckId();
+    try {
+      await saveDeck(deckId, withIds, suggestedName);
+      // Refresh saved decks list
+      const decks = await getAllDecks();
+      setSavedDecks(decks);
+    } catch (error) {
+      console.error("Failed to save deck to Firebase:", error);
     }
+
+    setCurrentDeckId(deckId);
+    setAllCards(withIds);
+    // Clear selection for new deck
+    setSelection({});
+    startWith(withIds);
   }
 
   async function loadSavedDeck(deckId) {
@@ -308,6 +338,8 @@ export default function FlashcardsApp() {
             onReset={resetAll}
             totalCards={allCards.length}
             poolSize={studyPool.length}
+            startWithBack={startWithBack}
+            onToggleStartWithBack={() => setStartWithBack((s) => !s)}
           />
 
           <TabSelector currentTab={tab} onTabChange={setTab} />
@@ -331,6 +363,8 @@ export default function FlashcardsApp() {
           savedDecks={savedDecks}
           onLoadDeck={loadSavedDeck}
           currentDeckId={currentDeckId}
+          startWithBack={startWithBack}
+          onToggleStartWithBack={() => setStartWithBack((s) => !s)}
         />
 
         {/* Learn Tab */}
