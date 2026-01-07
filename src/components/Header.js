@@ -6,6 +6,9 @@ export function Header({
   onLoadDemo,
   isDarkMode,
   onToggleDarkMode,
+  savedDecks = [],
+  onLoadDeck,
+  currentDeckId,
 }) {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -18,11 +21,8 @@ export function Header({
           K/→ dobrze.
         </p>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap justify-end">
         <label className="inline-flex items-center gap-2 text-sm">
-          <span className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-700 dark:text-white">
-            Wgraj JSON
-          </span>
           <input
             type="file"
             accept="application/json"
@@ -33,11 +33,29 @@ export function Header({
           />
           <label
             htmlFor="fileup"
-            className="px-3 py-2 rounded bg-slate-100 dark:bg-slate-700 dark:text-white cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-600"
+            className="px-3 py-2 rounded bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 cursor-pointer hover:bg-slate-800 dark:hover:bg-slate-200"
           >
-            Wybierz pliki
+            Wgraj / wybierz JSON
           </label>
         </label>
+
+        {savedDecks.length > 0 && (
+          <select
+            value={currentDeckId || ""}
+            onChange={(e) => {
+              const deckId = e.target.value;
+              if (deckId) onLoadDeck?.(deckId);
+            }}
+            className="px-3 py-2 rounded border bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-white hover:border-slate-400 dark:hover:border-slate-500"
+          >
+            <option value="">Zapisane zestawy</option>
+            {savedDecks.map((deck) => (
+              <option key={deck.id} value={deck.id}>
+                {deck.name} ({deck.cards?.length || 0})
+              </option>
+            ))}
+          </select>
+        )}
         <button
           className="px-3 py-2 rounded border bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700"
           onClick={onLoadDemo}
