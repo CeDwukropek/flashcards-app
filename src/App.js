@@ -53,6 +53,7 @@ export default function FlashcardsApp() {
   // Flow/UI
   const [idx, setIdx] = useState(0);
   const [showBack, setShowBack] = useState(() => startWithBack);
+  const [shouldAnimateFlip, setShouldAnimateFlip] = useState(true); // Only animate manual flips, not answer resets
   const [tab, setTab] = useState("learn"); // "learn" | "subset"
   const [isRunning, setIsRunning] = useState(true);
   const [seed, setSeed] = useState(() => Math.floor(Math.random() * 1e9));
@@ -93,6 +94,7 @@ export default function FlashcardsApp() {
         saveProgress(currentDeckId, updatedCorrectIds, updatedWrongIds);
       }
 
+      setShouldAnimateFlip(false);
       setIdx((i) => i + 1);
       setShowBack(startWithBack);
     },
@@ -113,6 +115,7 @@ export default function FlashcardsApp() {
       if (tab !== "learn" || !isRunning) return;
       if (e.key === " ") {
         e.preventDefault();
+        setShouldAnimateFlip(true);
         setShowBack((s) => !s);
       } else if (e.key.toLowerCase() === "j" || e.key === "ArrowLeft") {
         handleAnswer(false);
@@ -383,11 +386,15 @@ export default function FlashcardsApp() {
                   showBack={showBack}
                   onFlip={(maybeBool) => {
                     if (typeof maybeBool === "boolean") handleAnswer(maybeBool);
-                    else setShowBack((s) => !s);
+                    else {
+                      setShouldAnimateFlip(true);
+                      setShowBack((s) => !s);
+                    }
                   }}
                   currentIndex={idx}
                   totalCards={studyPool.length}
                   isLoading={isLoadingDeck}
+                  shouldAnimateFlip={shouldAnimateFlip}
                 />
               </div>
             ) : (
