@@ -158,8 +158,18 @@ export default function FlashcardsApp() {
           if (deck && deck.cards) {
             setCurrentDeckId(session.deckId);
             setAllCards(deck.cards);
-            setStudyPool(shuffle(deck.cards, session.idx || 0)); // Use seed for consistency
-            setIdx(session.idx || 0);
+
+            let pool = deck.cards;
+            if (Array.isArray(session.poolIds) && session.poolIds.length > 0) {
+              const byId = new Map(deck.cards.map((c) => [c.id, c]));
+              const ordered = session.poolIds
+                .map((id) => byId.get(id))
+                .filter(Boolean);
+              if (ordered.length > 0) pool = ordered;
+            }
+
+            setStudyPool(pool);
+            setIdx(Math.min(session.idx || 0, pool.length));
             setCorrectIds(session.correctIds || []);
             setWrongIds(session.wrongIds || []);
             setShowBack(startWithBack);
@@ -203,9 +213,10 @@ export default function FlashcardsApp() {
   // Auto-save session when progress changes
   useEffect(() => {
     if (currentDeckId) {
-      saveSession(currentDeckId, idx, correctIds, wrongIds);
+      const poolIds = studyPool.map((c) => c.id);
+      saveSession(currentDeckId, idx, correctIds, wrongIds, poolIds);
     }
-  }, [idx, correctIds, wrongIds, currentDeckId]);
+  }, [idx, correctIds, wrongIds, currentDeckId, studyPool]);
 
   // Handlers
   function startWith(cards) {
