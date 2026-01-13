@@ -51,7 +51,7 @@ export function FlipCard({
             }}
           >
             <div
-              className="absolute inset-0 flex items-center justify-center text-3xl font-semibold text-slate-900 dark:text-white p-8 text-center overflow-auto break-words"
+              className="absolute inset-0 flex items-center justify-center text-2xl font-semibold text-slate-900 dark:text-white p-4 text-center overflow-auto break-words"
               style={{
                 backfaceVisibility: "hidden",
               }}
@@ -60,7 +60,7 @@ export function FlipCard({
               <LaTeXText key={`latex-front-${currentIndex}`}>{term}</LaTeXText>
             </div>
             <div
-              className="absolute inset-0 flex items-center justify-center text-lg font-medium text-slate-900 dark:text-white p-8 text-center overflow-auto break-words"
+              className="absolute inset-0 flex items-center justify-center text-lg font-medium text-slate-900 dark:text-white p-4 text-center overflow-auto break-words"
               style={{
                 backfaceVisibility: "hidden",
                 transform: "rotateY(180deg)",
