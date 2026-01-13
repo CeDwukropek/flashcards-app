@@ -325,8 +325,8 @@ export default function FlashcardsApp() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 p-6 pb-24 sm:pb-6 relative flex justify-end">
-      <div className="mx-auto max-w-5xl left-6 right-6 bottom-24 sm:static flex justify-end flex-col">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 p-6 pb-24 sm:pb-6 relative flex justify-end overflow-hidden">
+      <div className="mx-auto max-w-5xl left-6 right-6 bottom-24 sm:static flex justify-end flex-col w-full">
         {/* top area: hidden on small screens — moved to BottomBar on mobile */}
         <div className="hidden sm:block">
           <Header
@@ -386,9 +386,9 @@ export default function FlashcardsApp() {
 
         {/* Learn Tab */}
         {tab === "learn" && (
-          <div className="mt-6">
+          <div className="mt-6 flex flex-col flex-grow">
             {!finished ? (
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-1">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-1 flex-grow">
                 {/* Card */}
 
                 <FlipCard
@@ -476,11 +476,6 @@ export default function FlashcardsApp() {
             }}
           />
         )}
-
-        {/* Footer */}
-        <div className="mt-8 text-center text-xs text-slate-400 dark:text-slate-500">
-          Made with ❤️ — tryb demo działa bez pliku JSON
-        </div>
       </div>
     </div>
   );
