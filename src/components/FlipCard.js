@@ -1,4 +1,5 @@
 import React from "react";
+import { LaTeXText } from "./LaTeXText";
 
 export function FlipCard({
   term,
@@ -45,13 +46,15 @@ export function FlipCard({
             }}
           >
             <div className="absolute inset-0 flex items-center justify-center text-3xl font-semibold [backface-visibility:hidden] text-slate-900 dark:text-white">
-              {term}
+              <LaTeXText>{term}</LaTeXText>
             </div>
             <div
               className="absolute inset-0 flex items-center justify-center text-2xl font-medium [backface-visibility:hidden] text-slate-900 dark:text-white"
               style={{ transform: "rotateY(180deg)" }}
             >
-              {definition || (
+              {definition ? (
+                <LaTeXText>{definition}</LaTeXText>
+              ) : (
                 <span className="text-slate-400 dark:text-slate-500">
                   (brak tłumaczenia)
                 </span>

@@ -1,5 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
+import { LaTeXText } from "./LaTeXText";
 
 export function Flashcard({ term, definition, showBack, onFlip }) {
   return (
@@ -13,13 +14,15 @@ export function Flashcard({ term, definition, showBack, onFlip }) {
         style={{ transformStyle: "preserve-3d" }}
       >
         <div className="absolute inset-0 flex items-center justify-center text-3xl font-semibold [backface-visibility:hidden]">
-          {term}
+          <LaTeXText>{term}</LaTeXText>
         </div>
         <div
           className="absolute inset-0 flex items-center justify-center text-2xl font-medium [backface-visibility:hidden]"
           style={{ transform: "rotateY(180deg)" }}
         >
-          {definition || (
+          {definition ? (
+            <LaTeXText>{definition}</LaTeXText>
+          ) : (
             <span className="text-slate-400">(brak tłumaczenia)</span>
           )}
         </div>
