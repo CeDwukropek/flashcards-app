@@ -1,4 +1,5 @@
 import React from "react";
+import { LaTeXText } from "./LaTeXText";
 
 export function SubsetSelector({
   cards,
@@ -54,13 +55,15 @@ export function SubsetSelector({
               />
               <div>
                 <div className="font-medium">
-                  {c.term}{" "}
+                  <LaTeXText>{c.term}</LaTeXText>{" "}
                   <span className="text-slate-400 dark:text-slate-500 text-sm">
                     #{i + 1}
                   </span>
                 </div>
                 <div className="text-slate-600 dark:text-slate-400">
-                  {c.definition || (
+                  {c.definition ? (
+                    <LaTeXText>{c.definition}</LaTeXText>
+                  ) : (
                     <span className="text-slate-400 dark:text-slate-500">
                       (brak tłumaczenia)
                     </span>
